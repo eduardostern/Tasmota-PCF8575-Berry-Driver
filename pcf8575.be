@@ -25,7 +25,7 @@ class PCF8575 : Driver
   end
 
   #- returns a 16 bit mask of the ports (10 to 17 and 0 to 7) -#
-  def read_bitmask()
+  def read()
     if !self.wire return nil end  #- exit if not initialized -#
 
     
@@ -73,7 +73,7 @@ class PCF8575 : Driver
 
   def every_second()
     if !self.wire return nil end  #- exit if not initialized -#
-    self.read_bitmask()
+    self.read()
   end
 
   #- display sensor value in the web UI -#
