@@ -37,9 +37,13 @@ class PCF8575 : Driver
     r = 65535-r
 
     self.lastvalue=self.value
-    self.value = (r & 0xFF00)>>8 | (r & 0x00FF)<<8
+
+    self.value = ((r & 0xFF00)>>8) | ((r & 0x00FF)<<8)
 
     if self.value != self.lastvalue
+      
+      if self.lastvalue == nil self.lastvalue = 65535-self.value end
+
       log("PCF8575 BITMASK VALUE: "+str(r))
       import string
       var msg = string.format(
@@ -49,26 +53,16 @@ class PCF8575 : Driver
 
                 self.value)
 
-      if self.lastvalue == nil self.lastvalue = 65535-self.value end
 
 
-      if (self.value & 0x01 != self.lastvalue & 0x01) msg=msg+string.format(", \"P0\":%i", (self.value & 0x01)>>0) end
-      if (self.value & 0x02 != self.lastvalue & 0x02) msg=msg+string.format(", \"P1\":%i", (self.value & 0x02)>>1) end
-      if (self.value & 0x04 != self.lastvalue & 0x04) msg=msg+string.format(", \"P2\":%i", (self.value & 0x04)>>2) end
-      if (self.value & 0x08 != self.lastvalue & 0x08) msg=msg+string.format(", \"P3\":%i", (self.value & 0x08)>>3) end
-      if (self.value & 0x10 != self.lastvalue & 0x10) msg=msg+string.format(", \"P4\":%i", (self.value & 0x10)>>4) end
-      if (self.value & 0x20 != self.lastvalue & 0x20) msg=msg+string.format(", \"P5\":%i", (self.value & 0x20)>>5) end
-      if (self.value & 0x40 != self.lastvalue & 0x40) msg=msg+string.format(", \"P6\":%i", (self.value & 0x40)>>6) end
-      if (self.value & 0x80 != self.lastvalue & 0x80) msg=msg+string.format(", \"P7\":%i", (self.value & 0x80)>>7) end
-      if (self.value & 0x100 != self.lastvalue & 0x100) msg=msg+string.format(", \"P10\":%i", (self.value & 0x100)>>8) end
-      if (self.value & 0x200 != self.lastvalue & 0x200) msg=msg+string.format(", \"P11\":%i", (self.value & 0x200)>>9) end
-      if (self.value & 0x400 != self.lastvalue & 0x400) msg=msg+string.format(", \"P12\":%i", (self.value & 0x400)>>10) end
-      if (self.value & 0x800 != self.lastvalue & 0x800) msg=msg+string.format(", \"P13\":%i", (self.value & 0x800)>>11) end
-      if (self.value & 0x1000 != self.lastvalue & 0x1000) msg=msg+string.format(", \"P14\":%i", (self.value & 0x1000)>>12) end
-      if (self.value & 0x2000 != self.lastvalue & 0x2000) msg=msg+string.format(", \"P15\":%i", (self.value & 0x2000)>>13) end
-      if (self.value & 0x4000 != self.lastvalue & 0x4000) msg=msg+string.format(", \"P16\":%i", (self.value & 0x4000)>>14) end
-      if (self.value & 0x8000 != self.lastvalue & 0x8000) msg=msg+string.format(", \"P17\":%i", (self.value & 0x8000)>>15) end
-      
+      for n: 0..7
+        if (self.value & 2^n != self.lastvalue & 2^n) msg=msg+string.format(", \"P%i\":%i", n, (self.value & 2^n)>>n) end
+      end
+
+      for n: 8..15
+        if (self.value & 2^n != self.lastvalue & 2^n) msg=msg+string.format(", \"P%i\":%i", n+2, (self.value & 2^n)>>n) end
+      end
+
 
       msg = msg + "}}"
 
@@ -87,7 +81,7 @@ class PCF8575 : Driver
 	  self.wire._write(bitmask >> 8)
 	  self.wire._end_transmission()
 	  #- self.wire.write(self.i2c,0x00,65535-newvalue) -#
-    return bitmask
+    return 65535-bitmask
 
   end
 
