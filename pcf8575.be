@@ -32,19 +32,15 @@ class PCF8575 : Driver
     
     var r = self.wire.read(self.i2cAddress,0x00,2)
     
-    if !r return nil end
+    if r == nil return nil end
 
     r = 65535-r
 
-    var a = r & 0xFF00
-    var b = r & 0x00FF
-
     self.lastvalue=self.value
-
-    self.value = a>>8 | b<<8
+    self.value = (r & 0xFF00)>>8 | (r & 0x00FF)<<8
 
     if self.value != self.lastvalue
-      log("PCF8575 BITMASK VALUE: "+str(self.value))
+      log("PCF8575 BITMASK VALUE: "+str(r))
       import string
       var msg = string.format(
   
@@ -53,7 +49,8 @@ class PCF8575 : Driver
 
                 self.value)
 
-      if self.lastvalue == nil self.lastvalue = ~self.value end
+      if self.lastvalue == nil self.lastvalue = 65535-self.value end
+
 
       if (self.value & 0x01 != self.lastvalue & 0x01) msg=msg+string.format(", \"P0\":%i", (self.value & 0x01)>>0) end
       if (self.value & 0x02 != self.lastvalue & 0x02) msg=msg+string.format(", \"P1\":%i", (self.value & 0x02)>>1) end
@@ -83,13 +80,15 @@ class PCF8575 : Driver
   end
 
   def write(bitmask)
-	  bitmask = ~bitmask
+	  bitmask = 65535-bitmask
 	  
 	  self.wire._begin_transmission(self.i2cAddress)
 	  self.wire._write(bitmask & 0x00FF) 
 	  self.wire._write(bitmask >> 8)
 	  self.wire._end_transmission()
 	  #- self.wire.write(self.i2c,0x00,65535-newvalue) -#
+    return bitmask
+
   end
 
   #- trigger a read every second -#
