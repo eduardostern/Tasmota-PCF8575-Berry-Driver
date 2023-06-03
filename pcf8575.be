@@ -5,18 +5,22 @@
  - May 30 2023 - v1 Initial Release
  - June 1 2023 - v1.1 Added Rule Support on Data Change
  - June 2 2023 - v1.2 Added Result for Separate Ports P0-P7 and P10-P17
+ - June 3 2023 - v1.3 Bugfixes for stupid bug on last Refactor (it's not C...) 
+                      Reverted to old bitmask change detection code
+                      Added on(port) and off(port) 
+                      i2c address new set on init() constructor
  -#
 
 
-class PCF8575 : Driver
+ class PCF8575 : Driver
   var wire          #- if wire == nil then the module is not initialized -#
   var value
   var i2cAddress
   var lastvalue
 
 
-  def init()
-    self.i2cAddress = 0x20
+  def init(i2cAddress)
+    self.i2cAddress = i2cAddress
     self.value=nil
     self.lastvalue=nil
     self.wire = tasmota.wire_scan(self.i2cAddress)
@@ -35,7 +39,6 @@ class PCF8575 : Driver
     if r == nil return nil end
 
     r = 65535-r
-
 
     self.value = ((r & 0xFF00)>>8) | ((r & 0x00FF)<<8)
 
@@ -84,6 +87,30 @@ class PCF8575 : Driver
   end
 
   def write(bitmask)
+	  
+    
+    
+    bitmask = 65535-bitmask
+	  
+	  self.wire._begin_transmission(self.i2cAddress)
+	  self.wire._write(bitmask & 0x00FF) 
+	  self.wire._write(bitmask >> 8)
+	  self.wire._end_transmission()
+	  #- self.wire.write(self.i2c,0x00,65535-newvalue) -#
+    return 65535-bitmask
+
+  end
+
+
+  def off(port) #- PCF8575 port from 0-7 and 10-17. -#
+
+
+    if port >= 8 port = port-2 end
+
+    var setbit = 0x01 << port
+    
+    var bitmask = self.value & (~setbit)
+   
 	  bitmask = 65535-bitmask
 	  
 	  self.wire._begin_transmission(self.i2cAddress)
@@ -95,9 +122,30 @@ class PCF8575 : Driver
 
   end
 
+
+  def on(port) #- PCF8575 port from 0-7 and 10-17.  -#
+
+
+    if port >= 8 port = port-2 end
+
+    var setbit = 0x01 << port
+    var bitmask = self.value | setbit
+    
+	  bitmask = 65535-bitmask
+	  
+	  self.wire._begin_transmission(self.i2cAddress)
+	  self.wire._write(bitmask & 0x00FF) 
+	  self.wire._write(bitmask >> 8)
+	  self.wire._end_transmission()
+	  #- self.wire.write(self.i2c,0x00,65535-newvalue) -#
+    return 65535-bitmask
+
+  end
+
+
   #- trigger a read every second -#
 
-  def every_second()
+  def every_250ms()
     if !self.wire return nil end  #- exit if not initialized -#
     self.read()
   end
@@ -158,6 +206,6 @@ class PCF8575 : Driver
   end
 
 end
-pcf8575 = PCF8575()
+pcf8575 = PCF8575(0x20)
 
 tasmota.add_driver(pcf8575)
