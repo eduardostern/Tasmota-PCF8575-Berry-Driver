@@ -9,6 +9,7 @@
                       Reverted to old bitmask change detection code
                       Added on(port) and off(port) 
                       i2c address new set on init() constructor
+                      Added toggle(port)
  -#
 
 
@@ -141,6 +142,29 @@
     return 65535-bitmask
 
   end
+
+
+
+  def toggle(port) #- PCF8575 port from 0-7 and 10-17.  -#
+
+
+    if port >= 8 port = port-2 end
+
+    var setbit = 0x01 << port
+    var bitmask = self.value ^ setbit
+    
+	  bitmask = 65535-bitmask
+	  
+	  self.wire._begin_transmission(self.i2cAddress)
+	  self.wire._write(bitmask & 0x00FF) 
+	  self.wire._write(bitmask >> 8)
+	  self.wire._end_transmission()
+	  #- self.wire.write(self.i2c,0x00,65535-newvalue) -#
+    return 65535-bitmask
+
+  end
+
+
 
 
   #- trigger a read every second -#
