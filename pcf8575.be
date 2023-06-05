@@ -10,6 +10,7 @@
                       Added on(port) and off(port) 
                       i2c address new set on init() constructor
                       Added toggle(port)
+ - June 4 2023 - v1.4 2nd Refactor on bitmask change detection code 
  -#
 
 
@@ -34,47 +35,35 @@
   def read()
     if !self.wire return nil end  #- exit if not initialized -#
 
-    
     var r = self.wire.read(self.i2cAddress,0x00,2)
     
     if r == nil return nil end
 
-    r = 65535-r
+    r = 0xFFFF-r
 
     self.value = ((r & 0xFF00)>>8) | ((r & 0x00FF)<<8)
 
     if self.value != self.lastvalue
       
       if self.lastvalue == nil 
-        self.lastvalue = 65535-self.value 
+        self.lastvalue = 0xFFFF-self.value 
       end
 
       import string
-      var msg = string.format(
-  
-      "{\"PCF8575\":{\"value\":%i",
-  
+      var msg = string.format("{\"PCF8575\":{\"value\":%i",self.value)
+      
+      for n:0..7
+        if (self.value & 0x01<<n != self.lastvalue & 0x01<<n) 
+          msg=msg+string.format(", \"P%i\":%i", n,(self.value & 0x01<<n)>>n) 
+        end
+      end
 
-                self.value)
+      for n:8..15
+        if (self.value & 0x01<<n != self.lastvalue & 0x01<<n) 
+          msg=msg+string.format(", \"P%i\":%i", n+2,(self.value & 0x01<<n)>>n) 
+        end
+      end
 
-
-                if (self.value & 0x01 != self.lastvalue & 0x01) msg=msg+string.format(", \"P0\":%i", (self.value & 0x01)>>0) end
-                if (self.value & 0x02 != self.lastvalue & 0x02) msg=msg+string.format(", \"P1\":%i", (self.value & 0x02)>>1) end
-                if (self.value & 0x04 != self.lastvalue & 0x04) msg=msg+string.format(", \"P2\":%i", (self.value & 0x04)>>2) end
-                if (self.value & 0x08 != self.lastvalue & 0x08) msg=msg+string.format(", \"P3\":%i", (self.value & 0x08)>>3) end
-                if (self.value & 0x10 != self.lastvalue & 0x10) msg=msg+string.format(", \"P4\":%i", (self.value & 0x10)>>4) end
-                if (self.value & 0x20 != self.lastvalue & 0x20) msg=msg+string.format(", \"P5\":%i", (self.value & 0x20)>>5) end
-                if (self.value & 0x40 != self.lastvalue & 0x40) msg=msg+string.format(", \"P6\":%i", (self.value & 0x40)>>6) end
-                if (self.value & 0x80 != self.lastvalue & 0x80) msg=msg+string.format(", \"P7\":%i", (self.value & 0x80)>>7) end
-                if (self.value & 0x100 != self.lastvalue & 0x100) msg=msg+string.format(", \"P10\":%i", (self.value & 0x100)>>8) end
-                if (self.value & 0x200 != self.lastvalue & 0x200) msg=msg+string.format(", \"P11\":%i", (self.value & 0x200)>>9) end
-                if (self.value & 0x400 != self.lastvalue & 0x400) msg=msg+string.format(", \"P12\":%i", (self.value & 0x400)>>10) end
-                if (self.value & 0x800 != self.lastvalue & 0x800) msg=msg+string.format(", \"P13\":%i", (self.value & 0x800)>>11) end
-                if (self.value & 0x1000 != self.lastvalue & 0x1000) msg=msg+string.format(", \"P14\":%i", (self.value & 0x1000)>>12) end
-                if (self.value & 0x2000 != self.lastvalue & 0x2000) msg=msg+string.format(", \"P15\":%i", (self.value & 0x2000)>>13) end
-                if (self.value & 0x4000 != self.lastvalue & 0x4000) msg=msg+string.format(", \"P16\":%i", (self.value & 0x4000)>>14) end
-                if (self.value & 0x8000 != self.lastvalue & 0x8000) msg=msg+string.format(", \"P17\":%i", (self.value & 0x8000)>>15) end
-                
       msg = msg + "}}"
 
       self.lastvalue=self.value
@@ -91,14 +80,14 @@
 	  
     
     
-    bitmask = 65535-bitmask
+    bitmask = 0xFFFF-bitmask
 	  
 	  self.wire._begin_transmission(self.i2cAddress)
 	  self.wire._write(bitmask & 0x00FF) 
 	  self.wire._write(bitmask >> 8)
 	  self.wire._end_transmission()
-	  #- self.wire.write(self.i2c,0x00,65535-newvalue) -#
-    return 65535-bitmask
+
+    return 0xFFFF-bitmask
 
   end
 
@@ -112,14 +101,14 @@
     
     var bitmask = self.value & (~setbit)
    
-	  bitmask = 65535-bitmask
+	  bitmask = 0xFFFF-bitmask
 	  
 	  self.wire._begin_transmission(self.i2cAddress)
 	  self.wire._write(bitmask & 0x00FF) 
 	  self.wire._write(bitmask >> 8)
 	  self.wire._end_transmission()
 	  #- self.wire.write(self.i2c,0x00,65535-newvalue) -#
-    return 65535-bitmask
+    return 0xFFFF-bitmask
 
   end
 
@@ -132,14 +121,14 @@
     var setbit = 0x01 << port
     var bitmask = self.value | setbit
     
-	  bitmask = 65535-bitmask
+	  bitmask = 0xFFFF-bitmask
 	  
 	  self.wire._begin_transmission(self.i2cAddress)
 	  self.wire._write(bitmask & 0x00FF) 
 	  self.wire._write(bitmask >> 8)
 	  self.wire._end_transmission()
 	  #- self.wire.write(self.i2c,0x00,65535-newvalue) -#
-    return 65535-bitmask
+    return 0xFFFF-bitmask
 
   end
 
@@ -153,14 +142,14 @@
     var setbit = 0x01 << port
     var bitmask = self.value ^ setbit
     
-	  bitmask = 65535-bitmask
+	  bitmask = 0xFFFF-bitmask
 	  
 	  self.wire._begin_transmission(self.i2cAddress)
 	  self.wire._write(bitmask & 0x00FF) 
 	  self.wire._write(bitmask >> 8)
 	  self.wire._end_transmission()
 	  #- self.wire.write(self.i2c,0x00,65535-newvalue) -#
-    return 65535-bitmask
+    return 0xFFFF-bitmask
 
   end
 
