@@ -158,7 +158,7 @@
 
   #- trigger a read every second -#
 
-  def every_250ms()
+  def every_100ms()
     if !self.wire return nil end  #- exit if not initialized -#
     self.read()
   end
